@@ -1,2 +1,2 @@
-# OllamaTest
-A test app which talks to Ollama hosted LLM
+# ConsoleHostTest
+Read output info from a console app
