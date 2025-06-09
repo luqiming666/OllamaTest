@@ -33,14 +33,12 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnBnClickedButtonUserSend();
-	LRESULT OnMsgConsoleOutput(WPARAM wParam, LPARAM lParam);
-
-	// 回调函数：接收子进程输出
-	void OnConsoleOutput(const CString& strOutput);
 
 private:
 	CEdit m_edtOutput;
 	CEdit m_edtInput;
+	CRichEditCtrl m_edtOutput2;
+
 public:
 	afx_msg void OnDestroy();
 	afx_msg void OnBnClickedButtonTest();

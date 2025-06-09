@@ -20,7 +20,6 @@ using json = nlohmann::json;
 #define new DEBUG_NEW
 #endif
 
-#define WM_CONSOLE_OUTPUT    (WM_USER+100)
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -70,6 +69,7 @@ void CConsoleHostTestDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_EDIT_CHATBOX, m_edtOutput);
 	DDX_Control(pDX, IDC_EDIT_USER_INPUT, m_edtInput);
+	DDX_Control(pDX, IDC_RICHEDIT22_CHAT, m_edtOutput2);
 }
 
 BEGIN_MESSAGE_MAP(CConsoleHostTestDlg, CDialogEx)
@@ -78,7 +78,6 @@ BEGIN_MESSAGE_MAP(CConsoleHostTestDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON_USER_SEND, &CConsoleHostTestDlg::OnBnClickedButtonUserSend)
 	ON_WM_DESTROY()
-	ON_MESSAGE(WM_CONSOLE_OUTPUT, OnMsgConsoleOutput)
 	ON_BN_CLICKED(IDC_BUTTON_TEST, &CConsoleHostTestDlg::OnBnClickedButtonTest)
 END_MESSAGE_MAP()
 
@@ -181,24 +180,6 @@ void CConsoleHostTestDlg::OnDestroy()
 	CDialogEx::OnDestroy();
 }
 
-static CString gMsg[10]; // 循环使用10个字符串
-static int gBufIndex = 0;
-void CConsoleHostTestDlg::OnConsoleOutput(const CString& strOutput) 
-{
-	// 在UI线程更新文本框（使用PostMessage避免跨线程冲突）
-	gMsg[gBufIndex] = strOutput;
-	PostMessage(WM_CONSOLE_OUTPUT, 0, (LPARAM)gBufIndex);
-	if (++gBufIndex >= 10) gBufIndex = 0;
-}
-
-LRESULT CConsoleHostTestDlg::OnMsgConsoleOutput(WPARAM wParam, LPARAM lParam)
-{
-	int bufIndex = lParam;
-	m_edtOutput.SetSel(-1, -1); // 滚动到末尾
-	m_edtOutput.ReplaceSel(gMsg[bufIndex]); // 添加输出
-	return 0;
-}
-
 
 // https://json.nlohmann.me/home/faq/#wide-string-handling
 // encoding function
@@ -232,8 +213,8 @@ void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 
 	if (!strInput.IsEmpty()) {
 		// 显示输入命令
-		m_edtOutput.SetSel(-1, -1);
-		m_edtOutput.ReplaceSel(_T("> ") + strInput + _T("\r\n"));
+		m_edtOutput2.SetSel(-1, -1);
+		m_edtOutput2.ReplaceSel(_T("> ") + strInput + _T("\r\n"));
 
 		// 发送到Ollama
 		json jsRequest;
@@ -250,8 +231,8 @@ void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 			std::cout << "模型回复：" << res->body << std::endl;
 
 			json jsResponse = json::parse(res->body);
-			m_edtOutput.SetSel(-1, -1); // 滚动到末尾
-			m_edtOutput.ReplaceSel(ANSIToUnicode(jsResponse["response"]).c_str()); // 添加输出
+			m_edtOutput2.SetSel(-1, -1); // 滚动到末尾
+			m_edtOutput2.ReplaceSel(ANSIToUnicode(jsResponse["response"]).c_str()); // 添加输出
 		}
 		else {
 			std::cout << "请求失败!";
