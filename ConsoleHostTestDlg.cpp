@@ -9,6 +9,9 @@
 #include "afxdialogex.h"
 #include "httplib.h"
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -107,6 +110,15 @@ BOOL CConsoleHostTestDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
+	// 打开控制台窗口
+	if (::GetConsoleWindow() == NULL)
+	{
+		if (::AllocConsole())
+		{
+			FILE* stream;
+			freopen_s(&stream, "CONOUT$", "w", stdout);
+		}
+	}
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -183,6 +195,15 @@ LRESULT CConsoleHostTestDlg::OnMsgConsoleOutput(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+std::string ConvertToUTF8(const CString& wideStr) {
+	int byteCount = WideCharToMultiByte(CP_UTF8, 0, wideStr, -1, NULL, 0, NULL, NULL);
+	if (byteCount <= 0) return "";
+
+	std::string result(byteCount, 0);
+	WideCharToMultiByte(CP_UTF8, 0, wideStr, -1, &result[0], byteCount, NULL, NULL);
+	return result;
+}
+
 void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 {
 	CString strInput;
@@ -191,8 +212,19 @@ void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 		// 显示输入命令
 		m_edtOutput.SetSel(-1, -1);
 		m_edtOutput.ReplaceSel(_T("> ") + strInput + _T("\r\n"));
-		// 发送输入到子进程
-		//m_ConsoleIO.WriteInput(strInput);
+
+		// 发送到Ollama
+		json jsRequest;
+		jsRequest["model"] = "deepseek-r1:8b";
+		jsRequest["prompt"] = std::wstring((LPCTSTR)strInput);
+		jsRequest["stream"] = true;
+		std::string strRequest = jsRequest.dump(4);
+		httplib::Client cli("localhost", 11434);
+		auto res = cli.Post("/api/generate", strRequest, "application/json");
+		if (res && res->status == 200) {
+			std::cout << "模型回复：" << res->body << std::endl;
+		}
+
 		m_edtInput.SetWindowText(_T(""));
 	}
 }

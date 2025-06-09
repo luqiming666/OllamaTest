@@ -1,2 +1,2 @@
 # ConsoleHostTest
-Read output info from a console app
+Test REST API of Ollama
