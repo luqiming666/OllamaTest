@@ -12,6 +12,10 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
+#include <string>
+#include <codecvt> // codecvt_utf8
+#include <locale>  // wstring_convert
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -195,19 +199,37 @@ LRESULT CConsoleHostTestDlg::OnMsgConsoleOutput(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-std::string ConvertToUTF8(const CString& wideStr) {
-	int byteCount = WideCharToMultiByte(CP_UTF8, 0, wideStr, -1, NULL, 0, NULL, NULL);
-	if (byteCount <= 0) return "";
 
-	std::string result(byteCount, 0);
-	WideCharToMultiByte(CP_UTF8, 0, wideStr, -1, &result[0], byteCount, NULL, NULL);
-	return result;
+// https://json.nlohmann.me/home/faq/#wide-string-handling
+// encoding function
+std::string to_utf8(std::wstring& wide_string)
+{
+	static std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8_conv;
+	return utf8_conv.to_bytes(wide_string);
+}
+
+#pragma warning(disable : 4996)
+std::wstring ANSIToUnicode(const std::string& str)
+{
+	std::wstring ret;
+	std::mbstate_t state = {};
+	const char* src = str.data();
+	size_t len = std::mbsrtowcs(nullptr, &src, 0, &state);
+	if (static_cast<size_t>(-1) != len) {
+		std::unique_ptr< wchar_t[] > buff(new wchar_t[len + 1]);
+		len = std::mbsrtowcs(buff.get(), &src, len, &state);
+		if (static_cast<size_t>(-1) != len) {
+			ret.assign(buff.get(), len);
+		}
+	}
+	return ret;
 }
 
 void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 {
 	CString strInput;
 	m_edtInput.GetWindowText(strInput);
+
 	if (!strInput.IsEmpty()) {
 		// 显示输入命令
 		m_edtOutput.SetSel(-1, -1);
@@ -216,13 +238,26 @@ void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 		// 发送到Ollama
 		json jsRequest;
 		jsRequest["model"] = "deepseek-r1:8b";
-		jsRequest["prompt"] = std::wstring((LPCTSTR)strInput);
+		std::wstring wsInput = std::wstring((LPCTSTR)strInput);
+		jsRequest["prompt"] = to_utf8(wsInput);
 		jsRequest["stream"] = true;
 		std::string strRequest = jsRequest.dump(4);
+		std::cout << strRequest << std::endl;
+
 		httplib::Client cli("localhost", 11434);
 		auto res = cli.Post("/api/generate", strRequest, "application/json");
 		if (res && res->status == 200) {
 			std::cout << "模型回复：" << res->body << std::endl;
+
+			json jsResponse = json::parse(res->body);
+			m_edtOutput.SetSel(-1, -1); // 滚动到末尾
+			m_edtOutput.ReplaceSel(ANSIToUnicode(jsResponse["response"]).c_str()); // 添加输出
+		}
+		else {
+			std::cout << "请求失败!";
+			if (res) {
+				std::cout << "状态码：" << res->status << std::endl;
+			}
 		}
 
 		m_edtInput.SetWindowText(_T(""));
