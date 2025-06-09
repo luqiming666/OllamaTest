@@ -67,9 +67,8 @@ CConsoleHostTestDlg::CConsoleHostTestDlg(CWnd* pParent /*=nullptr*/)
 void CConsoleHostTestDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_EDIT_CHATBOX, m_edtOutput);
 	DDX_Control(pDX, IDC_EDIT_USER_INPUT, m_edtInput);
-	DDX_Control(pDX, IDC_RICHEDIT22_CHAT, m_edtOutput2);
+	DDX_Control(pDX, IDC_RICHEDIT22_CHAT, m_edtOutput);
 }
 
 BEGIN_MESSAGE_MAP(CConsoleHostTestDlg, CDialogEx)
@@ -213,31 +212,31 @@ void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 
 	if (!strInput.IsEmpty()) {
 		// 显示输入命令
-		m_edtOutput2.SetSel(-1, -1);
-		m_edtOutput2.ReplaceSel(_T("> ") + strInput + _T("\r\n"));
+		m_edtOutput.SetSel(-1, -1);
+		m_edtOutput.ReplaceSel(_T("\n\n> ") + strInput + _T("\r\n"));
 
 		// 发送到Ollama
 		json jsRequest;
 		jsRequest["model"] = "deepseek-r1:8b";
 		std::wstring wsInput = std::wstring((LPCTSTR)strInput);
 		jsRequest["prompt"] = to_utf8(wsInput);
-		jsRequest["stream"] = true;
+		jsRequest["stream"] = false;
 		std::string strRequest = jsRequest.dump(4);
 		std::cout << strRequest << std::endl;
 
 		httplib::Client cli("localhost", 11434);
 		auto res = cli.Post("/api/generate", strRequest, "application/json");
 		if (res && res->status == 200) {
-			std::cout << "模型回复：" << res->body << std::endl;
+			std::cout << "LLM replies: " << res->body << std::endl;
 
 			json jsResponse = json::parse(res->body);
-			m_edtOutput2.SetSel(-1, -1); // 滚动到末尾
-			m_edtOutput2.ReplaceSel(ANSIToUnicode(jsResponse["response"]).c_str()); // 添加输出
+			m_edtOutput.SetSel(-1, -1); // 滚动到末尾
+			m_edtOutput.ReplaceSel(ANSIToUnicode(jsResponse["response"]).c_str()); // 添加输出
 		}
 		else {
-			std::cout << "请求失败!";
+			std::cout << "Failed to get a response from LLM";
 			if (res) {
-				std::cout << "状态码：" << res->status << std::endl;
+				std::cout << "Status code: " << res->status << std::endl;
 			}
 		}
 

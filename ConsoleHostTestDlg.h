@@ -35,9 +35,8 @@ public:
 	afx_msg void OnBnClickedButtonUserSend();
 
 private:
-	CEdit m_edtOutput;
+	CRichEditCtrl m_edtOutput;
 	CEdit m_edtInput;
-	CRichEditCtrl m_edtOutput2;
 
 public:
 	afx_msg void OnDestroy();
