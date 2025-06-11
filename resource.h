@@ -11,7 +11,8 @@
 #define IDC_BUTTON_USER_SEND            1001
 #define IDC_EDIT_CHATBOX                1002
 #define IDC_BUTTON_TEST                 1003
-#define IDC_RICHEDIT22                  1005
+#define IDC_BUTTON_TEST2                1004
+#define IDC_BUTTON_TEST_REMOTE          1004
 #define IDC_RICHEDIT22_CHAT             1005
 
 // Next default values for new objects

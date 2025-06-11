@@ -78,6 +78,7 @@ BEGIN_MESSAGE_MAP(CConsoleHostTestDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_USER_SEND, &CConsoleHostTestDlg::OnBnClickedButtonUserSend)
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_BUTTON_TEST, &CConsoleHostTestDlg::OnBnClickedButtonTest)
+	ON_BN_CLICKED(IDC_BUTTON_TEST_REMOTE, &CConsoleHostTestDlg::OnBnClickedButtonTestRemote)
 END_MESSAGE_MAP()
 
 
@@ -268,5 +269,42 @@ void CConsoleHostTestDlg::OnBnClickedButtonTest()
 		if (res) {
 			std::cout << "状态码：" << res->status << std::endl;
 		}		
+	}
+}
+
+/*
+* 配置Ollama服务，使其在局域网内可被其他机器访问
+* 1. ipconfig获取本机IP地址（e.g. 10.65.6.70）
+* 2. 在系统环境变量里设置OLLAMA_HOST，值为http://10.65.6.70:11434 
+* 3. 重启电脑。在浏览器里测试上述IP，如弹出防火墙，则允许
+* 
+* ollama -h 列出所有命令
+* ollama list 列出所有本地模型
+* ollama serve -h 可以列出所有支持的环境变量
+*/
+void CConsoleHostTestDlg::OnBnClickedButtonTestRemote()
+{
+	httplib::Client cli("10.65.6.70", 11434);
+
+	// 构建请求JSON
+	std::string request = R"(
+    {
+        "model": "deepseek-r1:8b",
+        "prompt": "who is the president of USA",
+        "stream": false
+    }
+    )";
+
+	// 调用Ollama API
+	auto res = cli.Post("/api/generate", request, "application/json");
+
+	if (res && res->status == 200) {
+		std::cout << "模型回复：" << res->body << std::endl;
+	}
+	else {
+		std::cout << "请求失败!";
+		if (res) {
+			std::cout << "状态码：" << res->status << std::endl;
+		}
 	}
 }

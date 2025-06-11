@@ -41,4 +41,5 @@ private:
 public:
 	afx_msg void OnDestroy();
 	afx_msg void OnBnClickedButtonTest();
+	afx_msg void OnBnClickedButtonTestRemote();
 };
