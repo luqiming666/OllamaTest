@@ -221,18 +221,29 @@ void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 		jsRequest["model"] = "deepseek-r1:8b";
 		std::wstring wsInput = std::wstring((LPCTSTR)strInput);
 		jsRequest["prompt"] = to_utf8(wsInput);
-		jsRequest["stream"] = false;
+		jsRequest["stream"] = true;
 		std::string strRequest = jsRequest.dump(4);
 		std::cout << strRequest << std::endl;
 
 		httplib::Client cli("localhost", 11434);
+		//httplib::Client cli("10.65.6.70", 11434);
 		auto res = cli.Post("/api/generate", strRequest, "application/json");
 		if (res && res->status == 200) {
-			std::cout << "LLM replies: " << res->body << std::endl;
+			//std::cout << "LLM replies: " << res->body << std::endl;
+			
+			// 流式响应处理
+			std::istringstream iss(res->body);
+			std::string line;
+			while (std::getline(iss, line)) { // 使用独立线程处理才会有效果哦！
+				if (!line.empty()) {
+					// 解析JSON行并提取内容
+					json jsResponse = json::parse(line);
+					m_edtOutput.SetSel(-1, -1); // 滚动到末尾
+					m_edtOutput.ReplaceSel(ANSIToUnicode(jsResponse["response"]).c_str()); // 添加输出
 
-			json jsResponse = json::parse(res->body);
-			m_edtOutput.SetSel(-1, -1); // 滚动到末尾
-			m_edtOutput.ReplaceSel(ANSIToUnicode(jsResponse["response"]).c_str()); // 添加输出
+					//std::cout << "New Line: " << line << std::endl;
+				}
+			}
 		}
 		else {
 			std::cout << "Failed to get a response from LLM";
