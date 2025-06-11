@@ -180,6 +180,14 @@ void CConsoleHostTestDlg::OnDestroy()
 	CDialogEx::OnDestroy();
 }
 
+void CConsoleHostTestDlg::OnOK()
+{
+	OnBnClickedButtonUserSend();
+
+	// 注意：不要调用CDialog::OnOK()，否则对话框会关闭
+	// CDialog::OnOK();
+}
+
 
 // https://json.nlohmann.me/home/faq/#wide-string-handling
 // encoding function
@@ -206,6 +214,7 @@ std::wstring ANSIToUnicode(const std::string& str)
 	return ret;
 }
 
+//#define _TEST_LOCALHOST
 void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 {
 	CString strInput;
@@ -225,12 +234,16 @@ void CConsoleHostTestDlg::OnBnClickedButtonUserSend()
 		std::string strRequest = jsRequest.dump(4);
 		std::cout << strRequest << std::endl;
 
+#ifdef _TEST_LOCALHOST
 		httplib::Client cli("localhost", 11434);
-		//httplib::Client cli("10.65.6.70", 11434);
+#else
+		httplib::Client cli("10.65.6.70", 11434);
+#endif
 		auto res = cli.Post("/api/generate", strRequest, "application/json");
 		if (res && res->status == 200) {
-			//std::cout << "LLM replies: " << res->body << std::endl;
-			
+#ifdef _TEST_LOCALHOST
+			std::cout << "LLM replies: " << res->body << std::endl;
+#endif	
 			// 流式响应处理
 			std::istringstream iss(res->body);
 			std::string line;
